@@ -66,12 +66,36 @@ Edit `configs/so101_default.py`:
 - `max_dq` → rad/s rate limit (safety cap on motion speed).
 - `max_angle_jump` → reject one-tick spikes from noisy pots.
 
-## Where this came from
+## Attribution
 
-Derived from the reference repo at this workspace root:
-- `programs/scratch/read_mcp3008_packets.py` → `encoders/mcp3008_serial.py`
-- `programs/g1_bridge_lib_20ch.py` mapping math → `mapping/channel_to_joint.py`
-  (all Unitree DDS / HG_LowCmd / CycloneDDS imports stripped)
-- `programs/g1_POTCONFIG.py` → `configs/so101_default.py`
-- `robot_interfaces/so101_serial.py` is new (no SO-101 code existed in the
-  reference repo; this is a minimal Feetech STS3215 writer).
+Some of the mapping and configuration approach here derives from
+[`matthehzhang/inhabit_teleop`](https://github.com/matthehzhang/inhabit_teleop),
+a team project I contributed to. Specifically, the channel-to-joint mapping
+structure follows that project's `g1_bridge_lib_20ch.py`, and the per-joint
+configuration shape follows its `g1_POTCONFIG.py`.
+
+File by file:
+
+- `mapping/channel_to_joint.py` ← `programs/g1_bridge_lib_20ch.py` mapping math
+  (all Unitree DDS / HG_LowCmd / CycloneDDS imports stripped).
+- `configs/so101_default.py` ← `programs/g1_POTCONFIG.py`.
+- `encoders/mcp3008_serial.py` ← `programs/scratch/read_mcp3008_packets.py`.
+  The wire format, the CRC16-CCITT routine and the header-resync loop are that
+  file's. The reader class, the auto-reconnect and the sequence-staleness
+  rejection are new here.
+- `firmware_ref/main_mcp3008.c` ← `firmware/serial_test/main/main_mcp3008.c`,
+  copied unchanged.
+- `firmware_ref/main_esp32_wroom.c` ← the same firmware, ported to the
+  ESP32-WROOM: UART0 through a CP2102 bridge instead of native USB CDC, with
+  different SPI pins and clock. The calibration, smoothing and packet-building
+  code is upstream's.
+
+Original to this repository: `robot_interfaces/so101_serial.py`, which is a
+minimal Feetech STS3215 goal-position writer — `inhabit_teleop` targets a
+Unitree G1 and contains no SO-101 or Feetech code — and the torque
+enable/disable sequencing that keeps the arm compliant until the mapper has
+homed and releases it again on shutdown.
+
+`inhabit_teleop` is a team project by Matthew Zhang and Luke Lu. The parts
+reused here are not solely my work, and this repository is published with that
+lineage stated rather than obscured.
